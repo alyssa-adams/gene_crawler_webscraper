@@ -1,0 +1,16 @@
+Alyssa M Adams
+4 May 2020
+
+Before running, be sure to find the latest Firefox Gecko driver for your OS!
+Save that file in the same directory as covid19.py.
+Then, make a new folder in this same directory called "data".
+All the scraped website data will go here.
+
+This scraper breaks a lot because this website is a moving target, it is changing in real time.
+Therefore, it makes a log file in the data folder.
+The log file simply records whether or not a page was saved, or if the page broke and it didn't save.
+
+Delete the log file if you restart the crawler, otherwise the log file will keep the old log contents.
+There's a place in the code to restart where it left off, to save some time when it does break.
+
+Updates soon!
