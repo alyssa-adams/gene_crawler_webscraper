@@ -12,7 +12,6 @@ import csv
 
 class Scraper:
 
-
     def make_browser(self):
 
         '''
@@ -48,34 +47,33 @@ class Scraper:
         # now go to main url and get the data
         url = 'https://www.covid19-archive.com/'
         browser.get(url)
-        time.sleep(10)
+        time.sleep(12)
 
         # Click show 25 results per page first (so the memory doesn't break)
-        button_xpath = "//select[@class='nt_pager_selection']/option[text()='25']"
+        button_xpath = "//select[@class='nt_pager_selection']/option[text()='10']"
         browser.find_element_by_xpath(button_xpath).click()
         time.sleep(10)
+        nav_buttons = browser.find_elements_by_class_name('footable-page-link')
 
         # restart it where it broke
-        nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-        nav_buttons[-1].click()
-        for _ in range(4):
-            nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-            nav_buttons[2].click()
-            time.sleep(5)
-        nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-        nav_buttons[94].click()
-        time.sleep(5)
+        #for _ in range(4):
+        #    nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+        #    nav_buttons[2].click()
+        #    time.sleep(5)
+        #nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+        #nav_buttons[94].click()
+        #time.sleep(5)
 
 
         # Keep doing this and then clicking next until there isn't any next to click
         pages = browser.find_element_by_class_name("label.label-default").text
         numbers = re.findall(' \d+ ', pages)
-        page1 = int(numbers[0].strip())
-        page2 = int(numbers[1].strip())
+        page_here = int(numbers[0].strip())
+        page_last = int(numbers[1].strip())
 
-        next_page_index = len(nav_buttons)-2-1
+        next_page_index = len(nav_buttons)-2
 
-        while page1 <= page2:
+        while page_here <= page_last:
 
             # get titles and dates from table
             table = browser.find_element_by_class_name("foo-table")
@@ -87,18 +85,28 @@ class Scraper:
             for i, row in enumerate(rows):
 
                 row_content = row.find_elements_by_tag_name("td")
-                date = row_content[0].text
-                # convert to datetime
-                title = row_content[1].text
+
+                title = row_content[0].text
+                archive_button = row_content[1]
+                archive_link = archive_button.find_elements_by_tag_name('a')[0].get_attribute('href')
+                author = row_content[2].text
+                source = row_content[3].text
+                date = row_content[4].text
+                # convert date to standard slash date
+                date = re.sub('\.', '/', date)
+
 
                 # save to dict
                 data[i] = {
-                    'date': date,
                     'title': title,
-                    'archive_url': '',
-                    'url': '',
+                    'archive_link': archive_link,
+                    'archive_button': archive_button,
+                    'author': author,
+                    'source': source,
+                    'date': date,
+                    'link': '',
                     'text': '',
-                    'links': ''
+                    'content_links': ''
                 }
 
             # get handle for this window, so we can come back to it
@@ -107,20 +115,17 @@ class Scraper:
             # for each title, click on that element to get the link, text, and any urls in the text
             for i in list(data.keys()):
 
-                # the titles sometimes have commas at the end randomly!?
+                data[i]['archive_button'].click()
+                time.sleep(10)
+
+                # save this window handle
+                window_after = browser.window_handles[1]
+                browser.switch_to.window(window_after)
+
                 title = data[i]['title']
-                if re.search('\,$', title):
-                    title = title[:-1]
 
-                # sometimes the title contains quotes, just skip those
+                # try to get the info off the page, if not then it didn't load after 10 seconds
                 try:
-                    link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
-                    link.click()
-                    time.sleep(10)
-
-                    # save this window handle
-                    window_after = browser.window_handles[1]
-                    browser.switch_to.window(window_after)
 
                     # get all links in the page
                     links = []
@@ -129,9 +134,12 @@ class Scraper:
                         link = elem.get_attribute("href")
                         links.append(link)
 
-                    # get page text by selecting all, then copying
-                    body = browser.find_element_by_tag_name('body')
-                    text = body.text
+                    # get page text by selecting all, then copying, basically
+                    #body = browser.find_element_by_tag_name('body')
+                    #text = body.text
+
+                    # get entire page HTML source, can parse with BS later
+                    text = browser.page_source
 
                 except:
                     message = 'skipped ' + title
@@ -139,7 +147,6 @@ class Scraper:
 
                     # save to log
                     with open("data/log.txt", "a+") as file_object:
-                        # Append 'hello' at the end of file
                         file_object.write(message + '\n')
 
                     # if in article window, close the window, go back to last window, and get new link
@@ -152,11 +159,13 @@ class Scraper:
                 try:
                     url = browser.find_element_by_xpath("//input[@type='text']").get_attribute('value')
                 except:
-                    url = ''
-                data[i]['url'] = url
-                data[i]['archive_url'] = browser.current_url
+                    try:
+                        url = links[-1].split('https://')[-1]
+                    except:
+                        url = ''
+                data[i]['link'] = url
                 data[i]['text'] = text
-                data[i]['links'] = links
+                data[i]['content_links'] = links
 
                 message = 'got ' + title
                 print(message)
@@ -174,8 +183,9 @@ class Scraper:
             # pickle df
             df = pd.DataFrame(data)
             df = df.transpose()
-            pickle.dump(df, open("data/data_df_" + str(page1) + ".pickle", "wb"))
-            print('saved page ' + str(page1))
+            df = df.drop(['archive_button'], axis=1)
+            df.to_csv("data/data_df_" + str(page_here) + ".csv")
+            print('saved page ' + str(page_here))
 
             # go to the next page of urls
             nav_buttons = browser.find_elements_by_class_name('footable-page-link')
@@ -187,7 +197,7 @@ class Scraper:
 
             # see if it actually went to the next page
             # if these are the same, then it didn't go to the next page and need to try higher button (it added pages)
-            if int(numbers[0].strip()) == page1:
+            if int(numbers[0].strip()) == page_here:
                 next_page_index += 1
                 nav_buttons = browser.find_elements_by_class_name('footable-page-link')
                 nav_buttons[next_page_index].click()
@@ -196,7 +206,7 @@ class Scraper:
                 # if still didn't work, then there's a problem
                 pages = browser.find_element_by_class_name("label.label-default").text
                 numbers = re.findall(' \d+ ', pages)
-                if int(numbers[0].strip()) == page1:
+                if int(numbers[0].strip()) == page_here:
                     quit()
 
             page1 = int(numbers[0].strip())
