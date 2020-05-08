@@ -38,7 +38,8 @@ class Scraper:
     def get_data(self, browser):
 
         '''
-        Navigates to the page to get all the file urls
+        RUNS STARTING AT LAST PAGE
+        Because new aricles are always added, and it gets confusing to restart where it left off.
         :param browser: made from make_browser()
         :return: None
         Crawls each page from this website, saves the result of each page to a file in the data folder
@@ -49,11 +50,14 @@ class Scraper:
         browser.get(url)
         time.sleep(12)
 
-        # Click show 25 results per page first (so the memory doesn't break)
+        # Click show 10 results per page first (so the memory doesn't break)
         button_xpath = "//select[@class='nt_pager_selection']/option[text()='10']"
         browser.find_element_by_xpath(button_xpath).click()
         time.sleep(10)
         nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+
+        # start at LAST page and go forwards
+        nav_buttons[-1].click()
 
         # restart it where it broke
         #for _ in range(4):
@@ -71,9 +75,19 @@ class Scraper:
         page_here = int(numbers[0].strip())
         page_last = int(numbers[1].strip())
 
-        next_page_index = len(nav_buttons)-2
+        # for going forwards
+        # next_page_index = len(nav_buttons)-2
 
-        while page_here <= page_last:
+        # For going backwards
+        next_page_index = 1
+
+        while page_here > 0:
+
+            # for going forwards
+            #page_number = page_here
+
+            # for going backwards
+            page_number = page_last-page_here+1
 
             # get titles and dates from table
             table = browser.find_element_by_class_name("foo-table")
@@ -87,8 +101,14 @@ class Scraper:
                 row_content = row.find_elements_by_tag_name("td")
 
                 title = row_content[0].text
-                archive_button = row_content[1]
-                archive_link = archive_button.find_elements_by_tag_name('a')[0].get_attribute('href')
+                # the titles sometimes have commas at the end randomly!?
+                title = re.sub('\,$', '', title)
+                try:
+                    archive_button = row_content[1]
+                    archive_link = archive_button.find_elements_by_tag_name('a')[0].get_attribute('href')
+                except:
+                    archive_button = None
+                    archive_link = row_content[0].find_elements_by_tag_name('a')[0].get_attribute('href')
                 author = row_content[2].text
                 source = row_content[3].text
                 date = row_content[4].text
@@ -115,18 +135,32 @@ class Scraper:
             # for each title, click on that element to get the link, text, and any urls in the text
             for i in list(data.keys()):
 
-                data[i]['archive_button'].click()
-                time.sleep(10)
+                title = data[i]['title']
+
+                if data[i]['archive_button']:
+                    data[i]['archive_button'].click()
+                    time.sleep(10)
+
+                else:
+                    # sometimes the title contains quotes, just skip those
+                    try:
+                        link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
+                        link.click()
+                        time.sleep(10)
+                    except:
+                        message = 'skipped ' + title
+                        print(message)
+                        # save to log
+                        with open("data/log.txt", "a+") as file_object:
+                            file_object.write(message + '\n')
+                        continue
 
                 # save this window handle
                 window_after = browser.window_handles[1]
                 browser.switch_to.window(window_after)
 
-                title = data[i]['title']
-
                 # try to get the info off the page, if not then it didn't load after 10 seconds
                 try:
-
                     # get all links in the page
                     links = []
                     elems = browser.find_elements_by_xpath("//a[@href]")
@@ -141,6 +175,7 @@ class Scraper:
                     # get entire page HTML source, can parse with BS later
                     text = browser.page_source
 
+                # otherwise just skip the page
                 except:
                     message = 'skipped ' + title
                     print(message)
@@ -155,7 +190,7 @@ class Scraper:
                         browser.switch_to.window(window_before)
                     continue
 
-                # fill in the rest of the values
+                # get the url
                 try:
                     url = browser.find_element_by_xpath("//input[@type='text']").get_attribute('value')
                 except:
@@ -163,6 +198,11 @@ class Scraper:
                         url = links[-1].split('https://')[-1]
                     except:
                         url = ''
+
+                # if an older archive site, get url a different way:
+                if url == '':
+                    url = browser.current_url.split('https://')[-1]
+
                 data[i]['link'] = url
                 data[i]['text'] = text
                 data[i]['content_links'] = links
@@ -180,12 +220,12 @@ class Scraper:
                 browser.switch_to.window(window_before)
 
 
-            # pickle df
+            # save to file
             df = pd.DataFrame(data)
             df = df.transpose()
             df = df.drop(['archive_button'], axis=1)
-            df.to_csv("data/data_df_" + str(page_here) + ".csv")
-            print('saved page ' + str(page_here))
+            df.to_csv("data/data_df_" + str(page_number) + ".csv")
+            print('saved page ' + str(page_number))
 
             # go to the next page of urls
             nav_buttons = browser.find_elements_by_class_name('footable-page-link')
@@ -209,7 +249,7 @@ class Scraper:
                 if int(numbers[0].strip()) == page_here:
                     quit()
 
-            page1 = int(numbers[0].strip())
+            page_here = int(numbers[0].strip())
 
 
 

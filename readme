@@ -13,4 +13,8 @@ The log file simply records whether or not a page was saved, or if the page brok
 Delete the log file if you restart the crawler, otherwise the log file will keep the old log contents.
 There's a place in the code to restart where it left off, to save some time when it does break.
 
+The crawler runs from LAST page to FIRST, since new articles are being written constantly.
+This way, page 1 means "the last page" and page 2 means "second to last page", and so on.
+So when it crashes, it can restart in the same spot counting from the end.
+
 Updates soon!
