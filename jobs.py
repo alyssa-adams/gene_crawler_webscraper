@@ -10,76 +10,56 @@ import csv
 
 # ============= This scraper gets all the news articles from https://www.covid19-archive.com/ ============
 
-class Scraper:
+class Jobs():
 
-    def make_browser(self):
+    def __init__(self):
 
-        '''
-        Sets up a Firefox browser with all the wanted parameters and settings
-        :return: The browser object
-        '''
+        pass
 
-        # Make the directory for downloaded files
-        if not os.path.exists('downloaded_files'):
-            os.makedirs('downloaded_files')
-
-        # Set download location and disable annoying popup
-        fp = webdriver.FirefoxProfile()
-        fp.set_preference("browser.download.folderList", 2)
-        fp.set_preference('browser.download.manager.showWhenStarting', False)
-        fp.set_preference("browser.download.dir", '/Users/gigglepuss/PycharmProjects/scraper/downloaded_files')
-        fp.set_preference('browser.helperApps.neverAsk.saveToDisk', 'text/fna, application/fna, application/x-download')  # type of file to download
-
-        # define the browser and the driver location
-        browser = webdriver.Firefox(executable_path='/Users/gigglepuss/PycharmProjects/scraper/geckodriver', firefox_profile=fp)
-        return browser
-
-
-    def get_data(self, browser):
+    def covid_news(self, browser):
 
         '''
-        RUNS STARTING AT LAST PAGE
-        Because new aricles are always added, and it gets confusing to restart where it left off.
+        Starts at the last page and goes to most recent!
         :param browser: made from make_browser()
         :return: None
         Crawls each page from this website, saves the result of each page to a file in the data folder
         '''
 
-        # now go to main url and get the data
-        url = 'https://www.covid19-archive.com/'
-        browser.get(url)
-        time.sleep(12)
+        # click stupid load button
+        #browser.find_elements_by_class_name('//*[@id="content"]/div/small/div[2]/div[1]/a')[0].click()
+        #time.sleep(10)
 
-        # Click show 10 results per page first (so the memory doesn't break)
-        button_xpath = "//select[@class='nt_pager_selection']/option[text()='10']"
-        browser.find_element_by_xpath(button_xpath).click()
-        time.sleep(10)
-        nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+        # Click show X results per page first (so the memory doesn't break)
+        #button_xpath = "//select[@class='nt_pager_selection']/option[text()='20']"
+        #browser.find_element_by_xpath(button_xpath).click()
+        #time.sleep(1)
 
         # start at LAST page and go forwards
+        time.sleep(10)
+        nav_buttons = browser.find_elements_by_class_name('footable-page-link')
         nav_buttons[-1].click()
-
-        # restart it where it broke
-        #for _ in range(4):
-        #    nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-        #    nav_buttons[2].click()
-        #    time.sleep(5)
-        #nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-        #nav_buttons[94].click()
-        #time.sleep(5)
-
-
-        # Keep doing this and then clicking next until there isn't any next to click
-        pages = browser.find_element_by_class_name("label.label-default").text
-        numbers = re.findall(' \d+ ', pages)
-        page_here = int(numbers[0].strip())
-        page_last = int(numbers[1].strip())
 
         # for going forwards
         # next_page_index = len(nav_buttons)-2
 
         # For going backwards
         next_page_index = 1
+
+        # restart it where it broke
+        #for _ in range(568):
+        #    nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+        #    nav_buttons[next_page_index].click()
+        #    time.sleep(1)
+        #time.sleep(5)
+
+        # Get the current page number, so we know which page we are on
+        pages = browser.find_element_by_class_name("label.label-default").text
+        numbers = re.findall(' \d+ ', pages)
+        page_here = int(numbers[0].strip())
+        page_last = int(numbers[1].strip())
+
+
+        # ============ GO THROUGH EACH PAGE, BACKWARDS ===============
 
         while page_here > 0:
 
@@ -89,7 +69,11 @@ class Scraper:
             # for going backwards
             page_number = page_last-page_here+1
 
+
+            # ---------- Table of links ----------
+
             # get titles and dates from table
+            time.sleep(5)
             table = browser.find_element_by_class_name("foo-table")
             rows = table.find_elements_by_tag_name("tr")
             rows = rows[3:]
@@ -103,15 +87,37 @@ class Scraper:
                 title = row_content[0].text
                 # the titles sometimes have commas at the end randomly!?
                 title = re.sub('\,$', '', title)
+
+                # if row is empty, then skip
+                if title == '':
+
+                    message = 'skipped ' + title + ' on page ' + str(page_number)
+
+                    # save to log
+                    with open("log.txt", "a+") as file_object:
+                        file_object.write(message + '\n')
+
+                    continue
+
                 try:
                     archive_button = row_content[1]
                     archive_link = archive_button.find_elements_by_tag_name('a')[0].get_attribute('href')
                 except:
                     archive_button = None
-                    archive_link = row_content[0].find_elements_by_tag_name('a')[0].get_attribute('href')
-                author = row_content[2].text
-                source = row_content[3].text
-                date = row_content[4].text
+                    archive_link = row_content[0]
+                    archive_link = archive_link.find_elements_by_tag_name('a')[0]
+                    archive_link = archive_link.get_attribute('href')
+
+
+                # They are always changing the format of this website >>
+
+                source = row_content[2].text
+                date = row_content[3].text
+
+                #author = row_content[2].text
+                #source = row_content[3].text
+                #date = row_content[4].text
+
                 # convert date to standard slash date
                 date = re.sub('\.', '/', date)
 
@@ -120,8 +126,8 @@ class Scraper:
                 data[i] = {
                     'title': title,
                     'archive_link': archive_link,
-                    'archive_button': archive_button,
-                    'author': author,
+                    #'archive_button': archive_button,
+                    #'author': author,
                     'source': source,
                     'date': date,
                     'link': '',
@@ -132,32 +138,59 @@ class Scraper:
             # get handle for this window, so we can come back to it
             window_before = browser.window_handles[0]
 
+
+            # ---------- Loop through archive links to click on each page and get info ----------
+
             # for each title, click on that element to get the link, text, and any urls in the text
             for i in list(data.keys()):
 
                 title = data[i]['title']
 
-                if data[i]['archive_button']:
-                    data[i]['archive_button'].click()
-                    time.sleep(10)
+                #if data[i]['archive_button']:
+                #    data[i]['archive_button'].click()
+                #    time.sleep(2)
+                #else:
 
-                else:
-                    # sometimes the title contains quotes, just skip those
-                    try:
-                        link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
-                        link.click()
-                        time.sleep(10)
-                    except:
-                        message = 'skipped ' + title
-                        print(message)
+                link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
+                link.click()
+                time.sleep(10)
+
+                #except:
+                #    message = 'skipped ' + title
+                #    print(message)
+                #    # save to log
+                #    with open("data/log.txt", "a+") as file_object:
+                #        file_object.write(message + '\n')
+                #    continue
+
+                # save this window handle
+                # if this breaks, then it means the button isn't clickable for some reason, and skip
+                try:
+                    window_after = browser.window_handles[1]
+                    browser.switch_to.window(window_after)
+
+                except:
+                    message = 'skipped ' + title + ' on page ' + str(page_number)
+
+                    # save to log
+                    with open("log.txt", "a+") as file_object:
+                        file_object.write(message + '\n')
+
+                    continue
+
+                # check if its that weird redirect page
+                if browser.find_elements_by_class_name("THUMBS-BLOCK"):
+
+                    # if there are no imgs, skip
+                    if len(browser.find_elements_by_tag_name("img")) == 0:
+                        message = 'skipped ' + title + ' on page ' + str(page_number)
                         # save to log
-                        with open("data/log.txt", "a+") as file_object:
+                        with open("log.txt", "a+") as file_object:
                             file_object.write(message + '\n')
                         continue
 
-                # save this window handle
-                window_after = browser.window_handles[1]
-                browser.switch_to.window(window_after)
+                    # click the FIRST one
+                    browser.find_elements_by_tag_name("img")[0].click()
 
                 # try to get the info off the page, if not then it didn't load after 10 seconds
                 try:
@@ -177,17 +210,18 @@ class Scraper:
 
                 # otherwise just skip the page
                 except:
-                    message = 'skipped ' + title
-                    print(message)
-
-                    # save to log
-                    with open("data/log.txt", "a+") as file_object:
-                        file_object.write(message + '\n')
 
                     # if in article window, close the window, go back to last window, and get new link
                     if window_before != browser.current_window_handle:
                         browser.close()
                         browser.switch_to.window(window_before)
+
+                    message = 'skipped ' + title + ' on page ' + str(page_number)
+
+                    # save to log
+                    with open("log.txt", "a+") as file_object:
+                        file_object.write(message + '\n')
+
                     continue
 
                 # get the url
@@ -207,12 +241,14 @@ class Scraper:
                 data[i]['text'] = text
                 data[i]['content_links'] = links
 
-                message = 'got ' + title
+
+                # ========== SAVE THESE TO A FILE ==========
+
+                message = 'got ' + title + ' on page ' + str(page_number)
                 print(message)
 
                 # save to log
-                with open("data/log.txt", "a+") as file_object:
-                    # Append 'hello' at the end of file
+                with open("log.txt", "a+") as file_object:
                     file_object.write(message + '\n')
 
                 # close the window, go back to last window, and get new link
@@ -223,8 +259,8 @@ class Scraper:
             # save to file
             df = pd.DataFrame(data)
             df = df.transpose()
-            df = df.drop(['archive_button'], axis=1)
-            df.to_csv("data/data_df_" + str(page_number) + ".csv")
+            #df = df.drop(['archive_button'], axis=1)
+            df.to_csv(os.path.join(self.global_variables['download_folder'], "data_df_" + str(page_number) + ".csv"))
             print('saved page ' + str(page_number))
 
             # go to the next page of urls
@@ -250,12 +286,3 @@ class Scraper:
                     quit()
 
             page_here = int(numbers[0].strip())
-
-
-
-if __name__ == '__main__':
-
-    scraper = Scraper()
-    browser = scraper.make_browser()
-    scraper.get_data(browser)
-    browser.quit()
