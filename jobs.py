@@ -16,7 +16,7 @@ class Jobs():
 
         pass
 
-    def covid_news(self, browser):
+    def covid_news(self, browser, restart):
 
         '''
         Starts at the last page and goes to most recent!
@@ -39,18 +39,23 @@ class Jobs():
         nav_buttons = browser.find_elements_by_class_name('footable-page-link')
         nav_buttons[-1].click()
 
-        # for going forwards
-        # next_page_index = len(nav_buttons)-2
-
         # For going backwards
         next_page_index = 1
 
         # restart it where it broke
-        #for _ in range(568):
-        #    nav_buttons = browser.find_elements_by_class_name('footable-page-link')
-        #    nav_buttons[next_page_index].click()
-        #    time.sleep(1)
-        #time.sleep(5)
+        if restart:
+
+            # read in log, get last page it was on
+            f = open("log.txt", "r")
+            log_contents = f.read()
+            last_page = re.findall('page \d+', log_contents)[-1]
+            last_page = int(last_page.split()[-1])
+
+            for _ in range(last_page):
+                nav_buttons = browser.find_elements_by_class_name('footable-page-link')
+                nav_buttons[next_page_index].click()
+                time.sleep(1)
+            time.sleep(5)
 
         # Get the current page number, so we know which page we are on
         pages = browser.find_element_by_class_name("label.label-default").text
@@ -146,26 +151,12 @@ class Jobs():
 
                 title = data[i]['title']
 
-                #if data[i]['archive_button']:
-                #    data[i]['archive_button'].click()
-                #    time.sleep(2)
-                #else:
-
-                link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
-                link.click()
-                time.sleep(10)
-
-                #except:
-                #    message = 'skipped ' + title
-                #    print(message)
-                #    # save to log
-                #    with open("data/log.txt", "a+") as file_object:
-                #        file_object.write(message + '\n')
-                #    continue
-
                 # save this window handle
                 # if this breaks, then it means the button isn't clickable for some reason, and skip
                 try:
+                    link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
+                    link.click()
+                    time.sleep(10)
                     window_after = browser.window_handles[1]
                     browser.switch_to.window(window_after)
 

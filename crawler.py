@@ -75,7 +75,7 @@ class Scraper:
         browser.save_screenshot(os.path.join(self.global_variables['screenshot_folder'], filename))
 
 
-    def crawl_and_scrape(self, browser, job):
+    def crawl_and_scrape(self, browser, job, restart):
 
         '''
         Wraps each individual job here as a general run function
@@ -90,7 +90,7 @@ class Scraper:
         time.sleep(12)
 
         # perform the actual job
-        result = eval('Jobs.' + job + '(self, browser=browser)')
+        result = eval('Jobs.' + job + '(self, browser=browser, restart=restart)')
 
         # check for success or error
         if not result:
@@ -100,8 +100,9 @@ class Scraper:
 if __name__ == '__main__':
 
     scraper = Scraper()
-    os_type = 'linux_server'
+    restart = True
+    os_type = 'linux_server'  # mac_laptop or linux_server
     job = 'covid_news'
     browser = scraper.make_browser(os_type)
-    scraper.crawl_and_scrape(browser=browser, job=job)
+    scraper.crawl_and_scrape(browser=browser, job=job, restart=restart)
     browser.quit()
