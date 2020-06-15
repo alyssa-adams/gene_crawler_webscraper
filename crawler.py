@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     scraper = Scraper()
     restart = True
-    os_type = 'linux_server'  # mac_laptop or linux_server
+    os_type = 'mac_laptop'  # mac_laptop or linux_server
     job = 'covid_news'
     browser = scraper.make_browser(os_type)
     scraper.crawl_and_scrape(browser=browser, job=job, restart=restart)

@@ -50,6 +50,7 @@ class Jobs():
             log_contents = f.read()
             last_page = re.findall('page \d+', log_contents)[-1]
             last_page = int(last_page.split()[-1])
+            last_page = 130  ############################ <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
             for _ in range(last_page):
                 nav_buttons = browser.find_elements_by_class_name('footable-page-link')
@@ -131,7 +132,7 @@ class Jobs():
                 data[i] = {
                     'title': title,
                     'archive_link': archive_link,
-                    #'archive_button': archive_button,
+                    'archive_button': archive_button,
                     #'author': author,
                     'source': source,
                     'date': date,
@@ -151,11 +152,13 @@ class Jobs():
 
                 title = data[i]['title']
 
-                # save this window handle
                 # if this breaks, then it means the button isn't clickable for some reason, and skip
                 try:
-                    link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
-                    link.click()
+                    if data[i]['archive_button']:
+                        data[i]['archive_button'].click()
+                    else:
+                        link = browser.find_elements_by_xpath('//*[text()="' + title + '"]')[0]
+                        link.click()
                     time.sleep(10)
                     window_after = browser.window_handles[1]
                     browser.switch_to.window(window_after)
