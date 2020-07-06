@@ -155,9 +155,6 @@ class JGIScraper:
         # Now go to each url and download the files
         print(download_urls)
 
-        # test for commit
-        download_urls
-
         for download_url in download_urls:
             browser.get(download_url)
 

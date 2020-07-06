@@ -17,7 +17,9 @@ class Scraper:
             'screenshot_folder': None,
             'log_file': None,
             'urls': {
-                'covid_news': 'https://www.covid19-archive.com/'
+                'covid_news': 'https://www.covid19-archive.com/',
+                'donut_ig': 'https://www.instagram.com/',
+                'jgi_taxonomy': 'https://img.jgi.doe.gov/cgi-bin/m/main.cgi?section=TreeFile&page=domain&domain=all'
             }
         }
 
@@ -67,10 +69,13 @@ class Scraper:
             browser = None
             quit()
 
+        # Set max loading time
+        browser.set_page_load_timeout(10)
+
         return browser
 
 
-    def save_screenshot(self, filename):
+    def save_screenshot(self, filename):  #TODO: Screenshot on break doesn't work
 
         browser.save_screenshot(os.path.join(self.global_variables['screenshot_folder'], filename))
 
@@ -94,15 +99,18 @@ class Scraper:
 
         # check for success or error
         if not result:
-            self.save_screenshot('error.png')
+            # TODO: result needs to return T/F, save screenshot of error
+            #self.save_screenshot('error.png')
+            result
 
 
 if __name__ == '__main__':
 
+    # TODO: Make this command-line friendly with options: os_type, job, restart
     scraper = Scraper()
-    restart = True
-    os_type = 'mac_laptop'  # mac_laptop or linux_server
-    job = 'covid_news'
+    restart = True  # TODO: Generalize restart a little better
+    os_type = 'linux_server'  # mac_laptop or linux_server
+    job = 'jgi_taxonomy'
     browser = scraper.make_browser(os_type)
     scraper.crawl_and_scrape(browser=browser, job=job, restart=restart)
     browser.quit()
