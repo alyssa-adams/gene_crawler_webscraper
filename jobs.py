@@ -323,6 +323,9 @@ class Jobs():
 
         '''
         Does the IG annoying work of likes and follows without getting banned.
+        TODO: Add follows from post engagement, then likes
+        TODO: Add follows and likes from hashtag search
+        TODO: Check if followed first before new follow
 
         Likes:
         300-400 likes per day (of followed accounts)
@@ -386,7 +389,7 @@ class Jobs():
         # scroll down and like 100 posts from followed accounts
         # one like per 35 seconds
 
-        max_likes = 100
+        max_likes = 0
         n_likes = 0
         SCROLL_PAUSE_TIME = 25
 
@@ -465,10 +468,21 @@ class Jobs():
         # save to tsv file!
         f = open('metadata.tsv', 'a+')
         tsv_writer = csv.writer(f, delimiter='\t')
-        header = ["taxon_object_id", "release_date", "ecosystem", "ecosystem_category", "ecosystem_subtype",
-                  "habitat", "is_published", "isolation", "isolation_country", "sequencing_method",
-                  "specific_ecosystem"]
-        tsv_writer.writerow(header)
+
+        # if not restart, make a file header
+        if not restart:
+            header = ["taxon_object_id", "release_date", "ecosystem", "ecosystem_category", "ecosystem_subtype",
+                      "habitat", "is_published", "isolation", "isolation_country", "sequencing_method",
+                      "specific_ecosystem", "study"]
+            tsv_writer.writerow(header)
+
+        # if restart, get the line number
+        with open('metadata.tsv', 'r') as readfilequick:
+            reader = csv.reader(readfilequick)
+            filecontents = readfilequick.read()
+            n_lines = len(re.findall('\n', filecontents)) - 1
+            last_row = filecontents.split('\n')[-2]
+            last_study = last_row.split('\t')[-2]
 
         # make pickle jar if don't already have one
         pickle_dir = 'pickle_jar'
@@ -502,10 +516,21 @@ class Jobs():
                 pickle.dump(studies, f)
 
 
+        # if restart, start on the study it left off on!
+        if restart:
+            n_study = studies.index(last_study)
+            studies = studies[n_study:]
+
+
         # loop through each study url
         for study in studies:
 
-            browser.get(study)
+            print(study)
+
+            try:
+                browser.get(study)
+            except:
+                browser.get(study)
             time.sleep(2)
 
             # show all rows in the table
@@ -520,10 +545,13 @@ class Jobs():
             links = list(filter(lambda x: re.search('taxon_oid', x), links))
 
 
-            for link in links:
+            for link in links[:2]:  # <<<<<<<<<<
 
                 # go to the link
-                browser.get(link)
+                try:
+                    browser.get(link)
+                except:
+                    browser.get(link)
                 time.sleep(2)
 
                 # get the data from this page
@@ -571,5 +599,8 @@ class Jobs():
                     # save to a row
                     row.append(cell)
 
+                # tack on the study link for restarting purposes
+                row.append(study)
                 tsv_writer.writerow(row)
+                print(row[0])
 

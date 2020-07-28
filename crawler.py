@@ -70,7 +70,7 @@ class Scraper:
             quit()
 
         # Set max loading time
-        browser.set_page_load_timeout(10)
+        browser.set_page_load_timeout(20)
 
         return browser
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     # TODO: Make this command-line friendly with options: os_type, job, restart
     scraper = Scraper()
     restart = True  # TODO: Generalize restart a little better
-    os_type = 'linux_server'  # mac_laptop or linux_server
+    os_type = 'mac_laptop'  # mac_laptop or linux_server
     job = 'jgi_taxonomy'
     browser = scraper.make_browser(os_type)
     scraper.crawl_and_scrape(browser=browser, job=job, restart=restart)
