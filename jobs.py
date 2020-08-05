@@ -465,8 +465,19 @@ class Jobs():
         :return:
         '''
 
+        results_file = 'metadata.tsv'
+
+        # if restart, get the line number
+        if restart:
+            with open(results_file, 'r') as readfilequick:
+                reader = csv.reader(readfilequick)
+                filecontents = readfilequick.read()
+                n_lines = len(re.findall('\n', filecontents)) - 1
+                last_row = filecontents.split('\n')[-2]
+                last_study = last_row.split('\t')[-1]
+
         # save to tsv file!
-        f = open('metadata.tsv', 'a+')
+        f = open(results_file, 'a+')
         tsv_writer = csv.writer(f, delimiter='\t')
 
         # if not restart, make a file header
@@ -476,15 +487,7 @@ class Jobs():
                       "specific_ecosystem", "study"]
             tsv_writer.writerow(header)
 
-        # if restart, get the line number
-        with open('metadata.tsv', 'r') as readfilequick:
-            reader = csv.reader(readfilequick)
-            filecontents = readfilequick.read()
-            n_lines = len(re.findall('\n', filecontents)) - 1
-            last_row = filecontents.split('\n')[-2]
-            last_study = last_row.split('\t')[-2]
-
-        # make pickle jar if don't already have one
+        # make pickle jar if don't already have one 
         pickle_dir = 'pickle_jar'
         if not os.path.exists(pickle_dir):
             os.mkdir(pickle_dir)
@@ -534,7 +537,12 @@ class Jobs():
             time.sleep(2)
 
             # show all rows in the table
-            menu = Select(browser.find_element_by_id('yui-pg0-0-rpp'))
+            try:
+                menu = Select(browser.find_element_by_id('yui-pg0-0-rpp'))
+            # there may not be any data in that study table
+            except:
+                continue
+
             menu.select_by_visible_text('All')
             time.sleep(10)
 
