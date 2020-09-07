@@ -348,30 +348,29 @@ class Jobs():
         # load in relevant data for login forms
         with open('info.json') as json_file:
             data = json.load(json_file)
-            username = data['info']['username']
-            password = data['info']['password']
+            username = data['donut_ig']['username']
+            password = data['donut_ig']['password']
 
         # ========================== log in ==========================
 
-        username_field = browser.find_element_by_xpath('/html/body/div[1]/section/main/article/div[2]/div[1]/div/form/div[2]/div/label/input')
+        username_field = browser.find_element_by_name('username')
         username_field.send_keys(username)
-        password_field = browser.find_element_by_xpath(
-            '/html/body/div[1]/section/main/article/div[2]/div[1]/div/form/div[3]/div/label/input')
+        password_field = browser.find_element_by_name('password')
         password_field.send_keys(password)
 
-        log_in = browser.find_element_by_xpath('/html/body/div[1]/section/main/article/div[2]/div[1]/div/form/div[4]/button/div')
+        log_in = browser.find_element_by_xpath("//*[contains(text(), 'Log In')]")
         log_in.click()
-        time.sleep(5)
+        time.sleep(2)
 
         # dont save login information
-        not_now = browser.find_element_by_xpath('/html/body/div[1]/section/main/div/div/div/div/button')
+        not_now = browser.find_element_by_xpath("//*[contains(text(), 'Not Now')]")
         not_now.click()
-        time.sleep(5)
+        time.sleep(2)
 
         # dont turn on notifications
-        not_now = browser.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[2]')
+        not_now = browser.find_element_by_xpath("//*[contains(text(), 'Not Now')]")
         not_now.click()
-        time.sleep(5)
+        time.sleep(2)
 
         """
         300-400 likes per day (of followed accounts)
@@ -384,13 +383,51 @@ class Jobs():
         Similar to likes, if you hit 1000 follows a day and below 200 an hour (1000 a day, with a 24-hour break)
         """
 
+        # ============ Go through all my own posts and follow everyone who interacted with my photos =============
+
+        # TODO: This doesn't work for videos because it's unclear how to see the list of who liked them...
+
+        # Go to own profile
+        profile_url = browser.current_url + username
+        browser.get(profile_url)
+
+        # click first picture/video, then we will check and scroll through each one
+        while True:
+            pictures = browser.find_elements_by_tag_name('img')
+            pictures[2].click()
+            pictures
+
+        # first, scroll all the way down to the bottom (to load all the media)
+        scroll_pause_time = 2
+        last_height = browser.execute_script("return document.body.scrollHeight")
+
+        while True:
+
+            # Scroll down to bottom
+            browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+            # Wait to load page
+            time.sleep(scroll_pause_time)
+
+            # Calculate new scroll height and compare with last scroll height
+            new_height = browser.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
+        # list all the pictures
+        browser
+
+
+
+
         # ========================== LIKES ==========================
 
         # scroll down and like 100 posts from followed accounts
         # one like per 35 seconds
 
-        max_likes = 0
-        n_likes = 0
+        max_likes = 3
+        n_likes = 3
         SCROLL_PAUSE_TIME = 25
 
         # Get scroll height

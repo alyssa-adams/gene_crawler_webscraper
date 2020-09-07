@@ -41,8 +41,7 @@ class Scraper:
             os.makedirs('screenshot_folder')
         self.global_variables['screenshot_folder'] = 'screenshot_folder'
 
-
-        if os_type == 'mac_laptop':
+        if os_type == 'mac':
 
             gecko_path = '/Users/gigglepuss/PycharmProjects/scraper/geckodriver'
 
@@ -56,13 +55,17 @@ class Scraper:
             # define the browser and the driver location
             browser = webdriver.Firefox(executable_path=gecko_path, firefox_profile=fp)
 
-        elif os_type == 'linux_server':
+        elif os_type == 'linux':
 
             gecko_path = '/home/alyssa/anacrawler/geckodriver'
-
             options = webdriver.FirefoxOptions()
             options.add_argument('-headless')
-            browser = webdriver.Firefox(executable_path=gecko_path, firefox_options=options)
+            browser = webdriver.Firefox(executable_path=gecko_path, options=options)
+
+        elif os_type == 'windows':
+
+            gecko_path = 'C:\\Users\\Dr GigglePuss\\PycharmProjects\\gene_crawler_webscraper\\geckodriver.exe'
+            browser = webdriver.Firefox(executable_path=gecko_path)
 
         else:
             print("Which os are you using?")
@@ -92,7 +95,7 @@ class Scraper:
         # now go to main url and wait to load
         url = self.global_variables['urls'][job]
         browser.get(url)
-        time.sleep(12)
+        time.sleep(5)
 
         # perform the actual job
         result = eval('Jobs.' + job + '(self, browser=browser, restart=restart)')
@@ -109,8 +112,8 @@ if __name__ == '__main__':
     # TODO: Make this command-line friendly with options: os_type, job, restart
     scraper = Scraper()
     restart = True  # TODO: Generalize restart a little better
-    os_type = 'mac_laptop'  # mac_laptop or linux_server
-    job = 'jgi_taxonomy'
+    os_type = 'windows'  # mac linux or windows
+    job = 'donut_ig'
     browser = scraper.make_browser(os_type)
     scraper.crawl_and_scrape(browser=browser, job=job, restart=restart)
     browser.quit()
